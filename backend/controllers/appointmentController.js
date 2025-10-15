@@ -151,16 +151,15 @@ const addVitalsToAppointment = async (req, res) => {
         const vitalsConsultation = await prisma.consultation.upsert({
             where: { id: vitalsConsultationId },
             update: {
-                vitals: parsedVitals,
+                ...parsedVitals,
             },
             create: {
                 id: vitalsConsultationId,
                 patientId: appointment.patientId,
                 doctorId: appointment.doctorId,
-                doctorName: appointment.doctorName,
                 chiefComplaint: 'Vitals Recorded',
                 diagnosis: 'Vitals Recorded',
-                vitals: parsedVitals,
+                ...parsedVitals,
                 appointmentId: appointment.id, // Link it back to the appointment
                 prescription: { create: [] }
             },

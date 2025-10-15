@@ -2,6 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
+const { protect } = require('../middleware/authMiddleware');
+
+// Apply the protect middleware to all routes in this file
+router.use(protect);
 
 // Helper function to calculate total stock from batches
 const calculateStock = (batches) => {
@@ -30,13 +34,13 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     // Note: This is for adding a medicine definition, not stock.
     // Stock is added via the /import or /:id/batches endpoints.
-    const { clinicId, ...data } = req.body;
+    const data = req.body;
     try {
         const newMedicine = await prisma.medicine.create({
             data: {
                 ...data,
                 totalStockInUnits: 0,
-                clinic: { connect: { id: clinicId } },
+                clinic: { connect: { id: req.user.clinicId } },
             },
         });
         res.status(201).json(newMedicine);
@@ -52,7 +56,7 @@ router.post('/', async (req, res) => {
 // POST /api/v1/medicines/:id/batches - Add a new batch to a medicine
 router.post('/:id/batches', async (req, res) => {
     const { id } = req.params;
-    const batchData = req.body;
+    const { supplierId, ...batchData } = req.body;
 
     try {
         const updatedMedicine = await prisma.medicine.update({
@@ -61,7 +65,7 @@ router.post('/:id/batches', async (req, res) => {
                 batches: {
                     create: {
                         ...batchData,
-                        supplier: { connect: { id: batchData.supplierId } }
+                        supplier: { connect: { id: supplierId } }
                     }
                 }
             },

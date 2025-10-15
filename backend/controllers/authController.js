@@ -1,9 +1,13 @@
 const prisma = require('../lib/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sendOtpEmail } = require('../lib/emailService');
 
 // In-memory store for OTPs and registration data. In production, use Redis or a database.
 const otpStore = {};
+
+// Helper to generate a random 6-digit OTP
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -32,8 +36,11 @@ exports.sendRegistrationOtp = async (req, res) => {
             return res.status(409).json({ message: 'This email is already registered.' });
         }
 
-        const otp = '1234'; // Using mock OTP
+        const otp = generateOtp();
         const expires = Date.now() + 5 * 60 * 1000; // 5 minute expiry
+
+        // Send email before storing, so we don't store if the email fails
+        await sendOtpEmail(email, otp);
 
         otpStore[email] = {
             otp,
@@ -42,7 +49,6 @@ exports.sendRegistrationOtp = async (req, res) => {
             context: 'register'
         };
 
-        console.log(`Mock OTP for ${email}: ${otp}`);
         res.status(200).json({ success: true, message: 'OTP sent to your email.' });
 
     } catch (error) {
@@ -183,12 +189,13 @@ exports.sendPasswordResetOtp = async (req, res) => {
             return res.status(404).json({ message: 'No primary admin account found with this email.' });
         }
 
-        const otp = '1234'; // Mock OTP
+        const otp = generateOtp();
         const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+        await sendOtpEmail(email, otp);
 
         otpStore[email] = { otp, expires, context: 'reset' };
 
-        console.log(`Mock Password Reset OTP for ${email}: ${otp}`);
         res.status(200).json({ success: true, message: 'Password reset OTP sent.' });
 
     } catch (error) {
