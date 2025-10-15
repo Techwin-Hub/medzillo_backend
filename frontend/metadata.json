@@ -1,0 +1,7 @@
+{
+  "name": "Copy of  Medzillo - Clinic & Pharmacy Management 28/6PM",
+  "description": "An integrated clinic and pharmacy management system designed for efficiency and ease of use.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
