@@ -2,7 +2,7 @@
 
 import { dbGet, dbSet } from '../utils/db';
 
-const API_BASE_URL = 'https://medzillo-backend.onrender.com'; // Your live URL should be here
+const API_BASE_URL = 'http://localhost:3001'; // Your live URL should be here
 
 async function getAuthToken() {
     return await dbGet<string>('medzillo_authToken');
