@@ -56,7 +56,7 @@ router.post('/', async (req, res) => {
 // POST /api/v1/medicines/:id/batches - Add a new batch to a medicine
 router.post('/:id/batches', async (req, res) => {
     const { id } = req.params;
-    const batchData = req.body;
+    const { supplierId, ...batchData } = req.body;
 
     try {
         const updatedMedicine = await prisma.medicine.update({
@@ -65,7 +65,7 @@ router.post('/:id/batches', async (req, res) => {
                 batches: {
                     create: {
                         ...batchData,
-                        supplier: { connect: { id: batchData.supplierId } }
+                        supplier: { connect: { id: supplierId } }
                     }
                 }
             },
