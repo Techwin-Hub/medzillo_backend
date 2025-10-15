@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id           String    @id @default(cuid())
+  name         String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  users        User[]
+  pharmacyInfo PharmacyInfo?
+  patients     Patient[]
+  suppliers    Supplier[]
+  medicines    Medicine[]
+  bills        Bill[]
+  chatMessages ChatMessage[]
+}
+
+model PharmacyInfo {
+  id               String  @id @default(cuid())
+  clinicId         String  @unique
+  clinic           Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name             String
+  organizationType String
+  address          String
+  city             String
+  pincode          String
+  phone            String
+  gstin            String
+  drugLicense      String
+  isGstEnabled     Boolean @default(true)
+}
+
+model User {
+  id               String        @id @default(cuid())
+  clinicId         String
+  name             String
+  email            String        @unique
+  password         String
+  role             String
+  consultationFee  Float?
+  specialty        String?
+  clinic           Clinic        @relation(fields: [clinicId], references: [id])
+  consultations    Consultation[]
+  appointments     Appointment[]
+  todos            TodoItem[]
+  sentMessages     ChatMessage[] @relation("SentMessages")
+  receivedMessages ChatMessage[] @relation("ReceivedMessages")
+}
+
+model SuperAdmin {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+}
+
+model Patient {
+  id                   String              @id @default(cuid())
+  clinicId             String
+  name                 String
+  mobile               String
+  dob                  String?
+  gender               String?
+  address              String?
+  bloodGroup           String?
+  allergies            String?
+  clinic               Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  consultations        Consultation[]
+  vaccinations         VaccinationRecord[]
+  skippedVaccinations  Json                @default("[]")
+  vaccinationOverrides Json                @default("[]")
+  appointments         Appointment[]
+  bills                Bill[]
+
+  @@unique([clinicId, name, mobile])
+}
+
+model Consultation {
+  id                 String             @id @default(cuid())
+  patientId          String
+  patient            Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId           String
+  doctor             User               @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  date               DateTime           @default(now())
+  chiefComplaint     String
+  diagnosis          String
+  notes              String?
+  prescription       PrescriptionItem[]
+  nextReviewDate     String?
+  appointmentId      String?            @unique
+  appointment        Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  // Vitals are now individual fields for better type safety
+  temperature        Float?
+  bloodPressure      String?
+  pulse              Int?
+  weight             Float?
+  height             Float?
+  oxygenSaturation   Float?
+}
+
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  medicineName   String
+  quantity       Int
+  dosage         String
+  duration       String
+  notes          String?
+}
+
+model VaccinationRecord {
+  id          String  @id @default(cuid())
+  patientId   String
+  patient     Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  vaccineName String
+  dose        String
+  dateGiven   String
+  batchNumber String?
+}
+
+model Appointment {
+  id           String        @id @default(cuid())
+  patientId    String
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId     String
+  doctor       User          @relation(fields: [doctorId], references: [id], onDelete: Restrict) // Changed onDelete rule
+  patientName  String?
+  doctorName   String?
+  startTime    DateTime
+  status       String
+  consultation Consultation?
+  bill         Bill?
+  sharedLink   SharedLink?
+
+  @@index([doctorId, startTime])
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name          String
+  contactPerson String
+  mobile        String
+  address       String
+  gstin         String?
+  paymentTerms  String?
+  batches       Batch[]
+}
+
+model Medicine {
+  id                String   @id @default(cuid())
+  clinicId          String
+  clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name              String
+  manufacturer      String
+  composition       String
+  strength          String
+  form              String
+  unitType          String
+  hsnCode           String
+  gstRate           Float
+  minStockLevel     Int
+  totalStockInUnits Int
+  batches           Batch[]
+}
+
+model Batch {
+  id             String   @id @default(cuid())
+  medicineId     String
+  medicine       Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  supplierId     String
+  supplier       Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  batchNumber    String
+  purchaseDate   String
+  expiryDate     String
+  packQuantity   Int
+  looseQuantity  Int
+  purchaseRate   Float
+  sellingRate    Float
+  supplierName   String
+  packSize       Int
+
+  @@unique([medicineId, batchNumber])
+}
+
+model Bill {
+  id            String     @id @default(cuid())
+  billNumber    String     @unique
+  clinicId      String
+  clinic        Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       Patient    @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  date          DateTime   @default(now())
+  items         BillItem[]
+  subTotal      Float
+  totalAmount   Float
+  paymentMode   String
+  appointmentId String?    @unique
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  taxDetails    Json
+}
+
+model BillItem {
+  id          String  @id @default(cuid())
+  billId      String
+  bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  itemType    String
+  itemName    String
+  quantity    Int
+  rate        Float
+  amount      Float
+  gstRate     Float
+  isRemovable Boolean
+  medicineId  String?
+  hsnCode     String?
+  batchNumber String?
+}
+
+// --- NEW UTILITY MODELS ---
+model TodoItem {
+  id          String   @id @default(cuid())
+  doctorId    String
+  doctor      User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  task        String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  dueDate     String?
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  clinicId   String
+  clinic     Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String
+  timestamp  DateTime @default(now())
+  read       Boolean  @default(false)
+}
+
+model SharedLink {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+}
