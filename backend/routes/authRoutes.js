@@ -11,6 +11,7 @@ router.post('/verify-otp', authController.verifyOtpAndRegister);
 
 // Login
 router.post('/login', authController.loginUser);
+router.post('/superadmin/login', authController.superAdminLogin);
 
 // Password Reset Flow
 router.post('/forgot-password/send-otp', authController.sendPasswordResetOtp);

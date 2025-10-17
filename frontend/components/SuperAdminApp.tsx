@@ -15,32 +15,17 @@ interface SuperAdminAppProps {
 }
 
 export const SuperAdminApp: React.FC<SuperAdminAppProps> = ({ navigateToClinic }) => {
-    const [superAdmin, setSuperAdmin] = useState<SuperAdmin | null>(null);
     const [viewingClinicId, setViewingClinicId] = useState<string | null>(null);
-
-    const { superAdmins } = useMockData();
-    const { addToast } = useToast();
-    const { clinics, dataByClinicId } = useSuperAdminData();
-
-    const handleLogin = async (email: string, password: string): Promise<boolean> => {
-        const admin = superAdmins.find(sa => sa.email === email && sa.password === password);
-        if (admin) {
-            setSuperAdmin(admin);
-            addToast(`Welcome, ${admin.name}!`, 'success');
-            return true;
-        }
-        return false;
-    };
+    const { superAdmin, logout, clinics } = useSuperAdminData();
 
     const handleLogout = () => {
-        setSuperAdmin(null);
+        logout();
         setViewingClinicId(null);
     };
 
     if (!superAdmin) {
         return (
             <SuperAdminLoginPage 
-                onLogin={handleLogin} 
                 navigateToClinic={navigateToClinic} 
             />
         );

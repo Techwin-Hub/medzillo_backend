@@ -222,6 +222,50 @@ exports.verifyPasswordResetOtp = async (req, res) => {
     res.status(200).json({ success: true, message: 'OTP verified. You can now reset your password.' });
 };
 
+// Super Admin Login
+exports.superAdminLogin = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    try {
+        const superAdmin = await prisma.superAdmin.findUnique({
+            where: { email },
+        });
+
+        if (!superAdmin) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        const isPasswordMatch = await bcrypt.compare(password, superAdmin.password);
+        if (!isPasswordMatch) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        const token = jwt.sign(
+            { superAdminId: superAdmin.id },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({
+            token,
+            user: {
+                id: superAdmin.id,
+                name: superAdmin.name,
+                email: superAdmin.email,
+                role: 'SuperAdmin',
+            }
+        });
+
+    } catch (error) {
+        console.error("Super Admin Login error:", error);
+        res.status(500).json({ message: 'Server error. Please try again.' });
+    }
+};
+
 // Step 3 of Password Reset: Set new password
 exports.resetPassword = async (req, res) => {
     const { email, newPassword } = req.body;

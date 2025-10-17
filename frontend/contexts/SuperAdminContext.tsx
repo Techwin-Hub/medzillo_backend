@@ -3,6 +3,7 @@ import usePersistentState from '../hooks/usePersistentState';
 import { Clinic, PharmacyInfo, Banner, BannerInterest } from '../types';
 import { useToast } from '../hooks/useToast';
 import * as api from '../api/apiService';
+import { dbDelete } from '../utils/db';
 
 // Define the shape of the data for a single clinic
 interface ClinicData {
@@ -12,6 +13,9 @@ interface ClinicData {
 
 // Define the shape of the context value
 interface SuperAdminContextType {
+    superAdmin: any;
+    login: (email: string, password: string) => Promise<boolean>;
+    logout: () => void;
     clinics: Clinic[];
     dataByClinicId: { [key: string]: any };
     banners: Banner[];
@@ -30,6 +34,7 @@ const SuperAdminContext = createContext<SuperAdminContextType | undefined>(undef
 export const SuperAdminProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
+    const [superAdmin, setSuperAdmin] = usePersistentState<any | null>('medzillo_superAdmin', null);
 
     // Use the persistent state hook to manage global clinic data
     const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -63,8 +68,28 @@ export const SuperAdminProvider: React.FC<{ children: ReactNode }> = ({ children
     }, [addToast]);
 
     useEffect(() => {
-        fetchDashboardData();
-    }, [fetchDashboardData]);
+        if (superAdmin) {
+            fetchDashboardData();
+        } else {
+            setIsLoading(false);
+        }
+    }, [superAdmin, fetchDashboardData]);
+
+    const login = async (email: string, password: string) => {
+        try {
+            const { user } = await api.superAdminLogin(email, password);
+            setSuperAdmin(user);
+            return true;
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            return false;
+        }
+    };
+
+    const logout = async () => {
+        setSuperAdmin(null);
+        await dbDelete('medzillo_superAdminToken');
+    };
 
 
     const updateClinicStatus = useCallback(async (clinicId: string, isActive: boolean) => {
@@ -107,6 +132,9 @@ export const SuperAdminProvider: React.FC<{ children: ReactNode }> = ({ children
 
 
     const value = {
+        superAdmin,
+        login,
+        logout,
         clinics,
         dataByClinicId,
         updateClinicStatus,
@@ -115,6 +143,7 @@ export const SuperAdminProvider: React.FC<{ children: ReactNode }> = ({ children
         addBanner,
         updateBannerStatus,
         deleteBanner,
+        isLoading,
     };
 
     return (

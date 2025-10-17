@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { LogoIcon, EnvelopeIcon, LockClosedIcon, SpinnerIcon, ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from './icons';
 
+import { useSuperAdminData } from '../contexts/SuperAdminContext';
+
 interface SuperAdminLoginPageProps {
-    onLogin: (email: string, password: string) => Promise<boolean>;
     navigateToClinic: () => void;
 }
 
-export const SuperAdminLoginPage: React.FC<SuperAdminLoginPageProps> = ({ onLogin, navigateToClinic }) => {
+export const SuperAdminLoginPage: React.FC<SuperAdminLoginPageProps> = ({ navigateToClinic }) => {
+    const { login } = useSuperAdminData();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -21,11 +23,13 @@ export const SuperAdminLoginPage: React.FC<SuperAdminLoginPageProps> = ({ onLogi
             return;
         }
         setIsLoading(true);
-        const success = await onLogin(email, password);
+        const success = await login(email, password);
         if (!success) {
             setError('Invalid credentials for Super Admin.');
         }
-        setIsLoading(false);
+        // No need to set loading to false, as the app will re-render
+        // either to the dashboard or stay here with an error.
+        // For a better UX, we can leave the spinner on until re-render.
     };
     
     const inputClass = (hasError: boolean) => `block w-full rounded-md border-0 py-3 pl-10 pr-3 bg-white text-slate-900 ring-1 ring-inset ${hasError ? 'ring-red-500' : 'ring-slate-300'} placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-primary sm:text-sm sm:leading-6 transition-all duration-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700 ${hasError ? 'dark:ring-red-500' : 'dark:ring-slate-700'} dark:focus:ring-brand-accent`;
