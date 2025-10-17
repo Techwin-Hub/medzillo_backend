@@ -1,5 +1,3 @@
 
 > medzillo-backend@1.0.0 dev
 > node --watch server.js
-
-Server is running on port 3001

@@ -13,6 +13,7 @@ const medicineRoutes = require('./routes/medicineRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const reportRoutes = require('./routes/reportsRoutes');
 const utilitiesRoutes = require('./routes/utilitiesRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,7 @@ app.use('/api/v1/medicines', medicineRoutes);
 app.use('/api/v1/bills', billingRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/utilities', utilitiesRoutes);
+app.use('/api/v1/superadmin', superAdminRoutes);
 
 
 // --- Error Handling ---

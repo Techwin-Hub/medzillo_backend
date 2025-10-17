@@ -190,7 +190,7 @@ const BannerFormModal: React.FC<{
 };
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onViewClinic, onLogout, adminName }) => {
-    const { clinics, dataByClinicId, updateClinicStatus, banners, addBanner, updateBannerStatus, deleteBanner, bannerInterests } = useSuperAdminData();
+    const { clinics, dataByClinicId, updateClinicStatus, banners, addBanner, updateBannerStatus, deleteBanner, bannerInterests, isLoading } = useSuperAdminData();
     const [confirmingStatusChange, setConfirmingStatusChange] = useState<{ clinicId: string, newStatus: boolean } | null>(null);
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [deletingBannerId, setDeletingBannerId] = useState<string | null>(null);
@@ -350,7 +350,17 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onView
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                {filteredClinics.length > 0 ? (
+                                {isLoading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div></td>
+                                            <td className="px-6 py-4"><div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full"></div></td>
+                                            <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded"></div><div className="h-6 w-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div></div></td>
+                                        </tr>
+                                    ))
+                                ) : filteredClinics.length > 0 ? (
                                     filteredClinics.map(clinic => {
                                         const clinicData = dataByClinicId[clinic.id];
                                         const sales = clinicData.bills.reduce((sum, bill) => sum + bill.totalAmount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
@@ -379,7 +389,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onView
                                 ) : (
                                     <tr>
                                         <td colSpan={5} className="text-center py-10 text-slate-500 dark:text-slate-400">
-                                            No clinics found matching "{searchTerm}".
+                                            {searchTerm ? `No clinics found matching "${searchTerm}".` : 'No clinics found.'}
                                         </td>
                                     </tr>
                                 )}

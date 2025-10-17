@@ -8,6 +8,10 @@ async function getAuthToken() {
     return await dbGet<string>('medzillo_authToken');
 }
 
+async function getSuperAdminAuthToken() {
+    return await dbGet<string>('medzillo_superAdminToken');
+}
+
 async function fetchApi(path: string, options: RequestInit = {}) {
     const token = await getAuthToken();
     
@@ -107,3 +111,41 @@ export const importStock = (items: any[]) =>
     method: 'POST',
     body: JSON.stringify(items),
   });
+
+// --- Super Admin ---
+
+async function superAdminFetchApi(path: string, options: RequestInit = {}) {
+    const token = await getSuperAdminAuthToken();
+
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+        ...options,
+        headers,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'An unexpected error occurred.' }));
+        console.error('Super Admin API Error:', errorData);
+        throw new Error(errorData.message || 'Network response was not ok');
+    }
+
+    return response.json();
+}
+
+export const superAdminLogin = async (email: any, password: any) => {
+    const data = await fetchApi('/auth/superadmin/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (data.token) {
+        await dbSet('medzillo_superAdminToken', data.token);
+    }
+    return data;
+};
+export const fetchSuperAdminDashboardStats = () => superAdminFetchApi('/superadmin/dashboard-stats');
+export const updateClinicStatus = (clinicId: string, isActive: boolean) => superAdminFetchApi(`/superadmin/clinics/${clinicId}/status`, { method: 'PUT', body: JSON.stringify({ isActive }) });

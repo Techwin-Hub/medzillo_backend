@@ -9,10 +9,19 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            req.user = await prisma.user.findUnique({
-                where: { id: decoded.userId },
-                select: { id: true, email: true, name: true, role: true, clinicId: true }
-            });
+            if (decoded.userId) {
+                req.user = await prisma.user.findUnique({
+                    where: { id: decoded.userId },
+                    select: { id: true, email: true, name: true, role: true, clinicId: true }
+                });
+            } else if (decoded.superAdminId) {
+                req.user = await prisma.superAdmin.findUnique({
+                    where: { id: decoded.superAdminId },
+                });
+                // Add a role to distinguish super admins
+                if(req.user) req.user.role = 'SuperAdmin';
+            }
+
 
             if (!req.user) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });

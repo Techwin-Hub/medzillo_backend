@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useCallback, ReactNode } from 'react';
-import { useMockData } from '../hooks/useMockData';
+import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
 import usePersistentState from '../hooks/usePersistentState';
 import { Clinic, PharmacyInfo, Banner, BannerInterest } from '../types';
 import { useToast } from '../hooks/useToast';
+import * as api from '../api/apiService';
 
 // Define the shape of the data for a single clinic
 interface ClinicData {
@@ -13,13 +13,14 @@ interface ClinicData {
 // Define the shape of the context value
 interface SuperAdminContextType {
     clinics: Clinic[];
-    dataByClinicId: { [key: string]: ClinicData };
+    dataByClinicId: { [key: string]: any };
     banners: Banner[];
     bannerInterests: BannerInterest[];
     updateClinicStatus: (clinicId: string, isActive: boolean) => Promise<void>;
     addBanner: (title: string, image: string, targetCities: string[]) => Promise<void>;
     updateBannerStatus: (bannerId: string, isActive: boolean) => Promise<void>;
     deleteBanner: (bannerId: string) => Promise<void>;
+    isLoading: boolean;
 }
 
 // Create the context
@@ -27,23 +28,57 @@ const SuperAdminContext = createContext<SuperAdminContextType | undefined>(undef
 
 // Create the provider component
 export const SuperAdminProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { clinics: mockClinics, dataByClinicId: mockData, banners: mockBanners, bannerInterests: mockBannerInterests } = useMockData();
     const { addToast } = useToast();
+    const [isLoading, setIsLoading] = useState(true);
 
     // Use the persistent state hook to manage global clinic data
-    const [clinics, setClinics] = usePersistentState<Clinic[]>('medzillo_clinics', mockClinics);
-    const [dataByClinicId, setDataByClinicId] = usePersistentState<{ [key: string]: ClinicData }>('medzillo_dataByClinicId', mockData);
-    const [banners, setBanners] = usePersistentState<Banner[]>('medzillo_banners', mockBanners);
-    const [bannerInterests, setBannerInterests] = usePersistentState<BannerInterest[]>('medzillo_bannerInterests', mockBannerInterests);
+    const [clinics, setClinics] = useState<Clinic[]>([]);
+    const [dataByClinicId, setDataByClinicId] = useState<{ [key: string]: any }>({});
+    const [banners, setBanners] = usePersistentState<Banner[]>('medzillo_banners', []);
+    const [bannerInterests, setBannerInterests] = usePersistentState<BannerInterest[]>('medzillo_bannerInterests', []);
+
+    const fetchDashboardData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await api.fetchSuperAdminDashboardStats();
+            setClinics(data);
+
+            // The new endpoint returns a simple list of clinics with aggregated data,
+            // so we need to transform it for the existing components.
+            const transformedData = data.reduce((acc: any, clinic: any) => {
+                acc[clinic.id] = {
+                    patients: { length: clinic.patientCount }, // Mocking patient list structure
+                    bills: clinic.totalSales > 0 ? [{ totalAmount: clinic.totalSales }] : [], // Mocking bills structure
+                    pharmacyInfo: { city: clinic.city || 'N/A' } // Assuming city is returned
+                };
+                return acc;
+            }, {});
+            setDataByClinicId(transformedData);
+
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [addToast]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
 
 
     const updateClinicStatus = useCallback(async (clinicId: string, isActive: boolean) => {
-        setClinics(prevClinics =>
-            prevClinics.map(clinic =>
-                clinic.id === clinicId ? { ...clinic, isActive } : clinic
-            )
-        );
-        addToast(`Clinic has been ${isActive ? 'activated' : 'deactivated'}.`, 'success');
+        try {
+            await api.updateClinicStatus(clinicId, isActive);
+            setClinics(prevClinics =>
+                prevClinics.map(clinic =>
+                    clinic.id === clinicId ? { ...clinic, isActive } : clinic
+                )
+            );
+            addToast(`Clinic has been ${isActive ? 'activated' : 'deactivated'}.`, 'success');
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        }
     }, [setClinics, addToast]);
 
     const addBanner = useCallback(async (title: string, image: string, targetCities: string[]) => {
