@@ -187,6 +187,50 @@ router.post('/import', async (req, res) => {
 });
 
 
+// PUT /api/v1/medicines/:id - Update a medicine
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+
+    // Make sure batches are not passed in the update data, they are managed separately
+    delete data.batches;
+
+    try {
+        const updatedMedicine = await prisma.medicine.update({
+            where: { id },
+            data,
+            include: { batches: true },
+        });
+        res.json(updatedMedicine);
+    } catch (error) {
+        console.error(`Failed to update medicine ${id}:`, error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Medicine not found.' });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// DELETE /api/v1/medicines/:id - Delete a medicine
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Prisma will cascade delete the batches due to the schema relation
+        await prisma.medicine.delete({
+            where: { id },
+        });
+        res.status(204).send(); // No content
+    } catch (error) {
+        console.error(`Failed to delete medicine ${id}:`, error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Medicine not found.' });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 // DELETE /api/v1/medicines/:id/batches/:batchNumber - Delete a specific batch
 router.delete('/:id/batches/:batchNumber', async (req, res) => {
     const { id, batchNumber } = req.params;
