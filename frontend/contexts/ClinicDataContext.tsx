@@ -221,15 +221,17 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode; viewOnlyClinicI
         draftConsultations, setDraftConsultations,
         addVitalsForAppointment: async (appointment: any, vitals: any) => {
             try {
-                const updatedConsultation = await api.addVitals(appointment.id, vitals);
+                // The API returns the full consultation object with vitals flattened
+                const newVitalsConsultation = await api.addVitals(appointment.id, vitals);
 
                 setData(prevData => {
                     const updatedPatients = prevData.patients.map(p => {
                         if (p.id === appointment.patientId) {
-                            const otherConsultations = p.consultations?.filter(c => c.id !== updatedConsultation.id) || [];
+                            // Add the new consultation to the patient's record
+                            const existingConsultations = p.consultations || [];
                             return {
                                 ...p,
-                                consultations: [...otherConsultations, updatedConsultation],
+                                consultations: [...existingConsultations, newVitalsConsultation],
                             };
                         }
                         return p;
@@ -237,9 +239,9 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode; viewOnlyClinicI
                     return { ...prevData, patients: updatedPatients };
                 });
 
-                addToast('Vitals saved.', 'success');
-                // Fetch data in the background to ensure consistency
-                fetchData();
+                addToast('Vitals have been recorded successfully.', 'success');
+                // We don't need to call fetchData() here anymore because we've manually
+                // updated the state with the exact response from the server.
             } catch(e) {
                 addToast((e as Error).message, 'error');
             }

@@ -55,7 +55,7 @@ const AppointmentCard: React.FC<{
     const startTime = new Date(appointment.startTime);
     
     const vitalsConsultation = (patient?.consultations || []).find(c => c.id === `con_vitals_${appointment.id}`);
-    const savedVitals = vitalsConsultation?.vitals;
+    const hasVitals = !!vitalsConsultation;
     const statusStyle = statusColors[appointment.status];
 
     return (
@@ -83,31 +83,32 @@ const AppointmentCard: React.FC<{
                     {appointment.status === 'Scheduled' && (
                         <div 
                             className="relative"
-                            onMouseEnter={() => savedVitals && setIsVitalsVisible(true)}
-                            onMouseLeave={() => savedVitals && setIsVitalsVisible(false)}
+                            onMouseEnter={() => hasVitals && setIsVitalsVisible(true)}
+                            onMouseLeave={() => hasVitals && setIsVitalsVisible(false)}
                         >
-                            <button 
-                                onClick={onAddVitals} 
+                            <button
+                                onClick={onAddVitals}
+                                disabled={hasVitals}
                                 className={`flex items-center text-sm font-medium rounded-md px-3 py-1.5 transition-colors ${
-                                    savedVitals 
-                                        ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900' 
+                                    hasVitals
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 cursor-not-allowed opacity-70'
                                         : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
                                 }`}
-                                title={savedVitals ? "Edit saved vitals" : "Add Patient Vitals"}
+                                title={hasVitals ? "Vitals have already been added" : "Add Patient Vitals"}
                             >
-                                <HeartIcon className={`w-5 h-5 mr-1.5 ${savedVitals ? 'text-green-600' : 'text-slate-500'}`}/>
-                                {savedVitals ? 'Vitals Added' : 'Add Vitals'}
+                                <HeartIcon className={`w-5 h-5 mr-1.5 ${hasVitals ? 'text-green-500' : 'text-slate-500'}`}/>
+                                {hasVitals ? 'Vitals Added' : 'Add Vitals'}
                             </button>
-                            {isVitalsVisible && savedVitals && (
+                            {isVitalsVisible && vitalsConsultation && (
                                 <div className="absolute right-0 bottom-full mb-2 w-56 bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-md shadow-lg z-20 p-3 text-sm">
                                     <h4 className="font-bold mb-2 text-slate-800 dark:text-slate-100 border-b dark:border-slate-700 pb-1">Saved Vitals</h4>
                                     <ul className="space-y-1 text-slate-700 dark:text-slate-300">
-                                        {savedVitals.bloodPressure && <li><strong>BP:</strong> {savedVitals.bloodPressure} mmHg</li>}
-                                        {savedVitals.pulse && <li><strong>Pulse:</strong> {savedVitals.pulse} bpm</li>}
-                                        {savedVitals.temperature && <li><strong>Temp:</strong> {savedVitals.temperature}°F</li>}
-                                        {savedVitals.oxygenSaturation && <li><strong>SpO2:</strong> {savedVitals.oxygenSaturation}%</li>}
-                                        {savedVitals.weight && <li><strong>Weight:</strong> {savedVitals.weight} kg</li>}
-                                        {savedVitals.height && <li><strong>Height:</strong> {savedVitals.height} cm</li>}
+                                        {vitalsConsultation.bloodPressure && <li><strong>BP:</strong> {vitalsConsultation.bloodPressure} mmHg</li>}
+                                        {vitalsConsultation.pulse && <li><strong>Pulse:</strong> {vitalsConsultation.pulse} bpm</li>}
+                                        {vitalsConsultation.temperature && <li><strong>Temp:</strong> {vitalsConsultation.temperature}°F</li>}
+                                        {vitalsConsultation.oxygenSaturation && <li><strong>SpO2:</strong> {vitalsConsultation.oxygenSaturation}%</li>}
+                                        {vitalsConsultation.weight && <li><strong>Weight:</strong> {vitalsConsultation.weight} kg</li>}
+                                        {vitalsConsultation.height && <li><strong>Height:</strong> {vitalsConsultation.height} cm</li>}
                                     </ul>
                                 </div>
                             )}
