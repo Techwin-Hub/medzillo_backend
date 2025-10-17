@@ -187,4 +187,46 @@ router.post('/import', async (req, res) => {
 });
 
 
+// DELETE /api/v1/medicines/:id/batches/:batchNumber - Delete a specific batch
+router.delete('/:id/batches/:batchNumber', async (req, res) => {
+    const { id, batchNumber } = req.params;
+
+    try {
+        // First, delete the batch
+        await prisma.batch.deleteMany({
+            where: {
+                medicineId: id,
+                batchNumber: batchNumber,
+            },
+        });
+
+        // Then, find the medicine and its remaining batches to recalculate stock
+        const medicine = await prisma.medicine.findUnique({
+            where: { id },
+            include: { batches: true },
+        });
+
+        if (!medicine) {
+            return res.status(404).json({ error: 'Medicine not found after batch deletion.' });
+        }
+
+        // Recalculate stock and perform a final update
+        const totalStock = calculateStock(medicine.batches);
+        const updatedMedicine = await prisma.medicine.update({
+            where: { id },
+            data: { totalStockInUnits: totalStock },
+            include: { batches: true },
+        });
+
+        res.json(updatedMedicine);
+    } catch (error) {
+        console.error(`Failed to delete batch ${batchNumber} from medicine ${id}:`, error);
+        // Check for specific Prisma error for records not found
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Batch not found or already deleted.' });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;

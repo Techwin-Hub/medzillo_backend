@@ -219,7 +219,31 @@ export const ClinicDataProvider: React.FC<{ children: ReactNode; viewOnlyClinicI
         updateAppointmentStatus: async (id: any, status: any) => { try { await api.updateAppointmentStatus(id, status); await fetchData(); addToast("Status updated.", "info"); } catch(e){ addToast((e as Error).message, 'error'); }},
         addMultiplePatients: async (patientsData: any) => { try { await api.bulkImportPatients(patientsData); await fetchData(); addToast("Patients imported.", "success"); } catch(e){ addToast((e as Error).message, 'error'); }},
         draftConsultations, setDraftConsultations,
-        addVitalsForAppointment: async (appointment: any, vitals: any) => { try { await api.addVitals(appointment.id, vitals); await fetchData(); addToast('Vitals saved.', 'success'); } catch(e) { addToast((e as Error).message, 'error'); } },
+        addVitalsForAppointment: async (appointment: any, vitals: any) => {
+            try {
+                const updatedConsultation = await api.addVitals(appointment.id, vitals);
+
+                setData(prevData => {
+                    const updatedPatients = prevData.patients.map(p => {
+                        if (p.id === appointment.patientId) {
+                            const otherConsultations = p.consultations?.filter(c => c.id !== updatedConsultation.id) || [];
+                            return {
+                                ...p,
+                                consultations: [...otherConsultations, updatedConsultation],
+                            };
+                        }
+                        return p;
+                    });
+                    return { ...prevData, patients: updatedPatients };
+                });
+
+                addToast('Vitals saved.', 'success');
+                // Fetch data in the background to ensure consistency
+                fetchData();
+            } catch(e) {
+                addToast((e as Error).message, 'error');
+            }
+        },
         saveConsultation: async (appointment: any, consultationData: any) => {
             try {
                 if (!currentUser) throw new Error("Authentication error: No user is currently logged in.");

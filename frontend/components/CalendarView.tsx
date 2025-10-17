@@ -96,7 +96,7 @@ const AppointmentCard: React.FC<{
                                 title={savedVitals ? "Edit saved vitals" : "Add Patient Vitals"}
                             >
                                 <HeartIcon className={`w-5 h-5 mr-1.5 ${savedVitals ? 'text-green-600' : 'text-slate-500'}`}/>
-                                {savedVitals ? 'Vitals Saved' : 'Add Vitals'}
+                                {savedVitals ? 'Vitals Added' : 'Add Vitals'}
                             </button>
                             {isVitalsVisible && savedVitals && (
                                 <div className="absolute right-0 bottom-full mb-2 w-56 bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-md shadow-lg z-20 p-3 text-sm">
